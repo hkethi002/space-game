@@ -43,7 +43,14 @@ type CelestialBody struct {
 	internalAbsoluteVelocity Vector3
 }
 
+type WindowInfo struct {
+	width  int
+	height int
+	ready  bool
+}
+
 type Model struct {
+	windowInfo       WindowInfo
 	pane             int
 	choices          []string
 	cursor           int
@@ -126,6 +133,10 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.selected[model.cursor] = struct{}{}
 			}
 		}
+	case tea.WindowSizeMsg:
+		model.windowInfo.height = msg.Height
+		model.windowInfo.width = msg.Width
+
 	case tickMsg:
 		// Velocity
 		model.sensors.velocity = Add(model.sensors.velocity, ScalarProduct(model.sensors.orientation, model.sensors.deltaV))
@@ -137,7 +148,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if _, ok := model.selected[0]; ok {
 			model.sensors.deltaV = math.Min(10.0, model.sensors.deltaV+1.0)
 		} else {
-			model.sensors.deltaV = math.Max(0, model.sensors.deltaV-1.0)
+			model.sensors.deltaV = math.Max(0, model.sensors.deltaV-2.0)
 		}
 		model.sensors.deltaV = math.Min(model.sensors.fuel, model.sensors.deltaV)
 
@@ -178,7 +189,6 @@ func (model Model) View() string {
     |     |
     |     |
     |     |
-    |     |
    /|##!##|\
   / |##!##| \
  /  |##!##|  \
@@ -203,7 +213,6 @@ func (model Model) View() string {
       / \
      /___\
     |=   =|
-    |     |
     |     |
     |     |
     |     |
@@ -254,12 +263,14 @@ func (model Model) View() string {
 	// The footer
 	s += "\nPress q to quit.\n"
 
-	border := lipgloss.NewStyle().
-		Align(lipgloss.Top).
+	topLeft := lipgloss.NewStyle().
+		Width(model.windowInfo.width/2 - 2).
+		Height(model.windowInfo.height/2 - 2).
+		Align(lipgloss.Center).
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("63"))
 	// Send the UI for rendering
-	return lipgloss.JoinHorizontal(lipgloss.Top, border.Render(s), lipgloss.NewStyle().PaddingLeft(8).Render(paneB))
+	return lipgloss.JoinHorizontal(lipgloss.Top, topLeft.Render(s), lipgloss.NewStyle().PaddingLeft(model.windowInfo.width/4-8).Align(lipgloss.Left).Inherit(topLeft).Render(paneB))
 }
 
 func main() {
