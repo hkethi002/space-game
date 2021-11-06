@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type tickMsg time.Time
@@ -43,6 +44,7 @@ type CelestialBody struct {
 }
 
 type Model struct {
+	pane             int
 	choices          []string
 	cursor           int
 	celestialBodies  []CelestialBody
@@ -86,7 +88,7 @@ func tick() tea.Cmd {
 
 func (model Model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
-	return tick()
+	return tea.Batch(tick(), tea.EnterAltScreen)
 }
 
 func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -158,8 +160,10 @@ func (model Model) View() string {
 	s += fmt.Sprintf("∆V (m/s): %f\n", model.sensors.deltaV)
 	s += fmt.Sprintf("Fuel: %f\n", model.sensors.fuel)
 
+	paneB := ""
+
 	if model.sensors.deltaV > 0.0 {
-		s += `
+		paneB += `
        !
        !
        ^
@@ -192,7 +196,7 @@ func (model Model) View() string {
        .
 `
 	} else {
-		s += `
+		paneB += `
        !
        !
        ^
@@ -250,8 +254,12 @@ func (model Model) View() string {
 	// The footer
 	s += "\nPress q to quit.\n"
 
+	border := lipgloss.NewStyle().
+		Align(lipgloss.Top).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("63"))
 	// Send the UI for rendering
-	return s
+	return lipgloss.JoinHorizontal(lipgloss.Top, border.Render(s), lipgloss.NewStyle().PaddingLeft(8).Render(paneB))
 }
 
 func main() {
